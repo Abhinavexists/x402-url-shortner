@@ -12,6 +12,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
+  console.log('fucker up :-', url, "is loading")
+
   const handleShorten = async () => {
     if (!url) return;
 
