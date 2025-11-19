@@ -1,5 +1,8 @@
 "use client";
 
+import { wrapFetchWithPayment } from "x402-fetch";
+import { createWalletClient, custom } from "viem";
+import { baseSepolia } from "viem/chains";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +15,6 @@ export default function Home() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  console.log('fucker up :-', url, "is loading")
-
   const handleShorten = async () => {
     if (!url) return;
 
@@ -22,10 +23,19 @@ export default function Home() {
     setShortUrl("");
 
     try {
-      const response = await fetch('/api/shorten', {
-        method: 'POST',
+      const [address] = await (window as any).ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      const walletClient = createWalletClient({
+        account: address,
+        chain: baseSepolia,
+        transport: custom((window as any).ethereum),
+      });
+      const fetchWithPayment = wrapFetchWithPayment(fetch as any, walletClient as any);
+      const response = await fetchWithPayment("/api/shorten", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ url }),
       });
@@ -33,13 +43,15 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to shorten URL');
+        setError(data.error || "Failed to shorten URL");
         return;
       }
 
       setShortUrl(data.shortUrl);
+
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      console.error("Payment / API error:", err);
+      setError("Payment failed or API error. Try again.");
     } finally {
       setIsLoading(false);
     }
@@ -55,14 +67,20 @@ export default function Home() {
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-zinc-950 to-black font-sans p-4">
       <main className="w-full max-w-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-2 text-white">x402 URL Shortener</h1>
-          <p className="text-zinc-400">Transform long URLs into short, shareable links</p>
+          <h1 className="text-4xl font-bold tracking-tight mb-2 text-white">
+            x402 URL Shortener
+          </h1>
+          <p className="text-zinc-400">
+            Transform long URLs into short, shareable links
+          </p>
         </div>
 
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Shorten your URL</CardTitle>
-            <CardDescription>Enter a long URL below to generate a shortened version</CardDescription>
+            <CardDescription>
+              Enter a long URL below to generate a shortened version
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
@@ -87,13 +105,11 @@ export default function Home() {
 
             {shortUrl && (
               <div className="mt-6 p-4 bg-muted rounded-lg space-y-3">
-                <div className="text-sm font-medium text-muted-foreground">Your shortened URL:</div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  Your shortened URL:
+                </div>
                 <div className="flex gap-2 items-center">
-                  <Input
-                    value={shortUrl}
-                    readOnly
-                    className="flex-1 bg-background"
-                  />
+                  <Input value={shortUrl} readOnly className="flex-1 bg-background" />
                   <Button variant="outline" onClick={copyToClipboard}>
                     {copied ? "Copied!" : "Copy"}
                   </Button>

@@ -1,0 +1,7 @@
+onlyBuiltDependencies:
+  - '@coinbase/x402'
+  - bufferutil
+  - keccak
+  - sharp
+  - unrs-resolver
+  - utf-8-validate
